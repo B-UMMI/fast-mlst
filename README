@@ -1,0 +1,27 @@
+$ make -C src all
+$ ./src/main
+
+Usage: ./src/main [OPTION]...
+
+Indexes and queries a set of STs. The input must be a tab separated vector of
+integers, with the same length per line.
+
+Options:
+  -i INAME   The name for the index (mandatory).
+  -q K       List matches with at most K errors.
+  -b         The index should be (re)built.
+
+$ xzcat campylobacter.unique.csv.xz | ./src/main -i campylobacter.index -b
+[0.001227] Loading data...
+5446 alleles
+5669 profiles
+[2.073521] Constructing SA and ISA...
+[14.476156] Writing index...
+[14.702880] done!
+$ ls -l campylobacter.index
+-rw-r--r-- 1 aplf aplf 247032360 Jul  2 22:37 campylobacter.index
+$ xzcat campylobacter.unique.csv.xz | tail -n 1 > query
+$ ./src/main -i campylobacter.index -q 30 < query
+5668    0
+#hits: 1 (962)
+$
