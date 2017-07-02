@@ -36,9 +36,9 @@ LDFLAGS = -lm
 # Files
 EXECS = main
 
-main_CS = main.c qsufsort.c
-main_HS = main.h
-main_OS = main.o qsufsort.o
+main_CS = main.c qsufsort.c sautils.c
+main_HS = main.h sautils.h
+main_OS = main.o qsufsort.o sautils.o
 
 # Phony targets 
 .PHONY: all clean depend

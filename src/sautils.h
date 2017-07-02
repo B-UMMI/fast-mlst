@@ -14,14 +14,12 @@
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  */
 
-#ifndef MAIN_H
-#define MAIN_H
+#ifndef SAUTILS_H
+#define SAUTILS_H
 
-int st_diff(int, int);
+void suffixsort(int *x, int *p, int n, int k, int l);
 
-int read_query(FILE * fd, int32_t *q, int32_t l);
-int load_STs(FILE *);
-int readline(FILE *fd, char **bf, int *bz);
-void usage();
+int solve_query(int32_t *s, int32_t *sa, int32_t *q, int d, int m, int k,
+    void (*hit)(int u, int d));
 
 #endif

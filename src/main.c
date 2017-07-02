@@ -37,12 +37,19 @@
 #include <assert.h>
 
 #include "main.h"
+#include "sautils.h"
 
 #define cpuTime() (clock()*1e-6)
 
 static int32_t *profiles;
 static int32_t *sa;
 static int32_t n, n_al, n_ST;
+
+void
+hit(int u, int d)
+{
+    printf("%d\t%d\n", u, d);
+}
 
 int
 main(int argc, char * argv[])
@@ -102,9 +109,15 @@ main(int argc, char * argv[])
 
         /* Read query */
         q = malloc(sizeof(int32_t)*(n_al + 1));
+        wn = read_query(stdin, q, n_al);
+        if (wn != n_al) {
+            fprintf(stderr, "ERROR while loading query, giving up...\n");
+            return EXIT_FAILURE;
+        }
 
-        /* TODO: search */
+        solve_query(profiles, sa, q, n_ST, n_al, k+1, hit);
 
+        free(q);
         close(fd);
         return EXIT_SUCCESS;
     }
@@ -127,7 +140,7 @@ main(int argc, char * argv[])
 
     memcpy(isa, profiles, sizeof(int32_t)*n);
     suffixsort(isa, sa, n, sigma+1, -1);
-    /* We do not need ISA! */
+    /* We do not need the ISA! */
     free(isa);
 
     fprintf(stderr, "[%f] Writing index...\n", cpuTime());
