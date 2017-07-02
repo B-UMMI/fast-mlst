@@ -82,10 +82,10 @@ solve_query(int32_t *s, int32_t *sa, int32_t *q, int d, int m, int k,
     memset(filter, 0xff, sizeof(int)*d);
 
     ltk = nv = 0;
-    for (int ik = 0; ik < m+1; ik += m/k) {
+    for (int ik = 0; ik < m+1 - m/k; ik += m/k) {
         int r = sa_search_low(sa, s, d*(m+1), q + ik, m/k);
         int t = sa_search_high(sa, s, d*(m+1), q + ik, m/k);
-        for(; r < t; r++) {
+        for(; r < t && nv < d; r++) {
             j = sa[r]/(m+1);
             if (sa[r]%(m+1) == ik && filter[j] != 1) {
                 filter[j] = 1;
