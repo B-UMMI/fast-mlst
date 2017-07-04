@@ -20,7 +20,7 @@
 int st_diff(int, int);
 
 int read_query(FILE * fd, int32_t *q, int32_t l);
-int load_STs(FILE *);
+int load_STs(FILE *, FILE *);
 int readline(FILE *fd, char **bf, int *bz);
 void usage();
 

@@ -74,7 +74,7 @@ hamming_distance(int32_t *s, int32_t *r, int m, int k, int p)
 
 int
 solve_query(int32_t *s, int32_t *sa, int32_t *q, int d, int m, int k,
-    void (*hit)(int u, int d))
+    int32_pair_t *rv)
 {
     int j, ltk, nv;
 
@@ -92,8 +92,9 @@ solve_query(int32_t *s, int32_t *sa, int32_t *q, int d, int m, int k,
                 nv ++;
                 int x = hamming_distance(q, s + j*(m+1), m, k, ik);
                 if (x < k) {
+                    rv[ltk].id = j;
+                    rv[ltk].n = x;
                     ltk++;
-                    hit(j, x);
                 }
             }
         }
@@ -103,3 +104,14 @@ solve_query(int32_t *s, int32_t *sa, int32_t *q, int d, int m, int k,
     return ltk;
 }
 
+int
+int32_pair_cmp(const void *p, const void *q)
+{
+    int32_pair_t * ip = (int32_pair_t *) p;
+    int32_pair_t * iq = (int32_pair_t *) q;
+
+    if (ip->n != iq->n)
+        return ip->n - iq->n;
+
+    return ip->id - iq->id;
+}

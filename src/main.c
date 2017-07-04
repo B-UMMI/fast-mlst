@@ -41,23 +41,20 @@
 
 #define cpuTime() (clock()*1e-6)
 
+static int32_t *lidx;
 static int32_t *profiles;
 static int32_t *sa;
 static int32_t n, n_al, n_ST;
 
-void
-hit(int u, int d)
-{
-    printf("%d\t%d\n", u, d);
-}
-
 int
 main(int argc, char * argv[])
 {
-    char iname[128] = { 0 }, mode = 'q';
-    int32_t opt = -1, k = -1, sigma = -1, *isa = NULL, wn = 0, fd, *mblock, *q;
+    char iname[132] = { 0 }, lname[132] = { 0 }, mode = 'q', *lblock;
+    int32_t opt = -1, k = -1, sigma = -1, *isa = NULL, wn = 0, fd, lfd, *mblock,
+        *q, nr, i;
+    int32_pair_t *r;
     struct stat sb;
-    FILE *fptr = NULL;
+    FILE *fptr = NULL, *lptr = NULL;
 
     /* Command line options :
      *
@@ -73,6 +70,7 @@ main(int argc, char * argv[])
         switch (opt) {
         case 'i':
             strncpy(iname, optarg, 127);
+            strncpy(lname, optarg, 127);
             break;
         case 'b':
             mode = 'b'; 
@@ -92,6 +90,9 @@ main(int argc, char * argv[])
         exit(EXIT_FAILURE);
     }
 
+    strcat(iname, ".idx");
+    strcat(lname, ".ids");
+
     if (mode == 'q') {
         fd = open(iname, O_RDONLY);
         fstat(fd, &sb);
@@ -106,6 +107,15 @@ main(int argc, char * argv[])
         n = n_ST * (n_al + 1);
         profiles = mblock + 2;
         sa = profiles + (n + 1);
+        lidx = sa + (n + 1);
+
+        lfd = open(lname, O_RDONLY);
+        fstat(lfd, &sb);
+        lblock = mmap(NULL, sb.st_size, PROT_READ, MAP_SHARED, lfd, 0);
+        if (lblock == MAP_FAILED) {
+            perror("Error loading index");
+            return EXIT_FAILURE;
+        }
 
         /* Read query */
         q = malloc(sizeof(int32_t)*(n_al + 1));
@@ -115,16 +125,27 @@ main(int argc, char * argv[])
             return EXIT_FAILURE;
         }
 
-        solve_query(profiles, sa, q, n_ST, n_al, k+1, hit);
+        r = malloc(sizeof(int32_pair_t)*n_ST);
+        nr = solve_query(profiles, sa, q, n_ST, n_al, k+1, r);
+        qsort(r, nr, sizeof(int32_pair_t), int32_pair_cmp);
 
+        for (i = 0; i < nr; i++)
+            printf("%s\t%d\n", lblock + lidx[r[i].id], r[i].n);
+
+        free(r);
         free(q);
         close(fd);
+        close(lfd);
         return EXIT_SUCCESS;
     }
 
     /* Load data... */
     fprintf(stderr, "[%f] Loading data...\n", cpuTime());
-    sigma = load_STs(stdin);
+
+    lptr = fopen(lname, "w");
+    sigma = load_STs(stdin, lptr);
+    fclose(lptr);
+
     if (sigma < 0) {
         fprintf(stderr, "ERROR while loading data, giving up...\n");
         return EXIT_FAILURE;
@@ -153,9 +174,14 @@ main(int argc, char * argv[])
     wn += fwrite(&n_al, sizeof(n_al), 1, fptr);
     wn += fwrite(profiles, sizeof(int32_t), (n + 1), fptr);
     wn += fwrite(sa, sizeof(int32_t), (n + 1), fptr);
+    wn += fwrite(lidx, sizeof(int32_t), n_ST, fptr);
     fclose(fptr);
 
-    if (wn != 2 + 2*(n+1)) {
+    free(lidx);
+    free(profiles);
+    free(sa);
+
+    if (wn != 2 + 2*(n+1) + n_ST) {
         fprintf(stderr,
             "An error occured while writing the index, exiting...\n");
         return EXIT_FAILURE;
@@ -185,15 +211,17 @@ read_query(FILE * fd, int32_t *q, int32_t l) {
 
     q[i] = 0;
 
+    free(buffer);
+
     return i;
 }
 
 int
-load_STs(FILE *fd)
+load_STs(FILE *fd, FILE *lfd)
 {
     char *buffer = NULL;
     int32_t bsize = 0, max_ST = 0;
-    int32_t i = 0, sigma = 0;
+    int32_t i = 0, sigma = 0, pl = 0;
     char *tok;
 
     max_ST = n_ST = n_al = 0;
@@ -221,16 +249,22 @@ load_STs(FILE *fd)
         if (tok == NULL)
             return -1;
     
-        /* Let us get the ST_id for this line. */
-        /* id = atoi(tok); unused */
-
         /* Checking free space... */
         if (n_ST >= max_ST) {
             if (max_ST != 0) max_ST <<= 1;
             else max_ST = 1024;
 
             profiles = realloc(profiles, sizeof(int32_t)*(max_ST*(n_al + 1) + 1));
+            lidx = realloc(lidx, sizeof(int32_t)*max_ST);
         }
+
+        /* Let us get the ST_id for this line. */
+        /* id = atoi(tok); unused */
+        lidx[n_ST] = 0;
+        if (n_ST > 0)
+            lidx[n_ST] = lidx[n_ST-1] + pl;
+        fprintf(lfd, "%s%c", tok, 0);
+        pl = strlen(tok) + 1;
 
         /* Parse and store the profile. */
         for (i = 0; (tok = strtok(NULL, "\t\n, ")) != NULL; i++) {

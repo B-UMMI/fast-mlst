@@ -17,9 +17,15 @@
 #ifndef SAUTILS_H
 #define SAUTILS_H
 
+typedef struct {
+    int32_t id, n;
+} int32_pair_t;
+
 void suffixsort(int *x, int *p, int n, int k, int l);
 
 int solve_query(int32_t *s, int32_t *sa, int32_t *q, int d, int m, int k,
-    void (*hit)(int u, int d));
+    int32_pair_t *r);
+
+int int32_pair_cmp(const void *p, const void *q);
 
 #endif
